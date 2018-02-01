@@ -10,9 +10,9 @@ SOURCES=$(wildcard *.cpp)
 OBJECTS=$(patsubst %.cpp, %.o, $(SOURCES))
 
 $(OBJECTS): %.o:%.cpp
-	CC $(CXXFLAGS) -c $< -o $@
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
 main: main.o
-	CC $^ -o $@ $(LDFLAGS)
+	$(CC) $^ -o $@ $(LDFLAGS)
 clean:
 	rm -rf *.o main

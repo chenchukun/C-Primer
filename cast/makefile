@@ -1,10 +1,10 @@
 CC=g++
 CXXFLAGS=-std=c++11 -g -Wall
-LDFLAGS= ../cpplibrary/libcalculate_cpp.a
+LDFLAGS=
 
 FLAGS= $(CXXFLAGS) $(LDFLAGS)
 
-all: main
+all: static
 
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(patsubst %.cpp, %.o, $(SOURCES))
@@ -12,7 +12,7 @@ OBJECTS=$(patsubst %.cpp, %.o, $(SOURCES))
 $(OBJECTS): %.o:%.cpp
 	$(CC) $(CXXFLAGS) -c $< -o $@
 
-main: main.o
+static: static.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 clean:
-	rm -rf *.o main
+	rm -rf *.o static
