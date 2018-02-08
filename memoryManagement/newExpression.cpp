@@ -38,7 +38,7 @@ void newObj()
     // 以上语句可以展开为如下
     try {
         void *mem = ::operator new(sizeof(Complex));
-        cp = reinterpret_cast<Complex*>(mem);
+        cp = static_cast<Complex*>(mem);
         // 编译器中使用 cp->Complex::Complex(1, 2)
         // 但是我们不能直接调用构造函数,可以用以下语句实现对象构造
         new(cp)Complex(1, 2);   // placement new
@@ -72,7 +72,7 @@ void arrayNew()
 void placementNew()
 {
     // placement new 允许我们将对象构建在已分配的内存上。相当于不分配内存的new
-    void *vp = reinterpret_cast<Complex*>(malloc(sizeof(Complex)));
+    void *vp = malloc(sizeof(Complex));
     Complex *p = new(vp)Complex(1, 2);
     cout << *p << endl;
     delete p;
@@ -80,7 +80,7 @@ void placementNew()
     // 编译器将 Complex *p = new(vp)Complex(1, 2) 转为如下语句
     // Complex *p;
     // void *men = operator new(sizeof(Complex), vp);  // 直接返回vp
-    // p = reinterpret_cast<Complex*>(mem);
+    // p = static_cast<Complex*>(mem);
     // p->Complex::Complex(1, 2);
 }
 

@@ -11,7 +11,7 @@ using namespace std;
 void memoryPrimitive()
 {
     // malloc 接收一个参数,表示分配的内存大小,malloc的底层是调用系统API
-    int *pm = reinterpret_cast<int*>(malloc(sizeof(int)));
+    int *pm = static_cast<int*>(malloc(sizeof(int)));
     free(pm);
 
     // new由于构建一个对象,它调用::operator new分配内存,然后调用对象的构造函数
@@ -27,7 +27,7 @@ void memoryPrimitive()
 
     // ::operator new分配指定大小的内存空间
     void *pv = ::operator new(sizeof(int));
-    int *po = reinterpret_cast<int*>(pv);
+    int *po = static_cast<int*>(pv);
     ::operator delete(po);
 }
 
