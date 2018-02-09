@@ -58,22 +58,22 @@ public:
         cout << "~OFoo()" << endl;
     }
 
-    void* operator new(size_t size) {
+    static void* operator new(size_t size) {
         cout << "OFoo::operator new" << endl;
         return malloc(size);
     }
 
-    void*operator new[](size_t size) {
+    static void*operator new[](size_t size) {
         cout << "OFoo::operator new[]" << endl;
         return malloc(size);
     }
 
-    void operator delete(void *p) {
+    static void operator delete(void *p) {
         cout << "OFoo::operator delete" << endl;
         free(p);
     }
 
-    void operator delete[](void *p) {
+    static void operator delete[](void *p) {
         cout << "OFoo::operator delete[]" << endl;
         free(p);
     }
@@ -99,11 +99,16 @@ void global()
 
 void local()
 {
+    // 调用类内的operator new 和operator delete
     OFoo *p = new OFoo;
     delete p;
 
     p = new OFoo[10];
     delete [] p;
+
+    // 调用全局的
+    p = ::new OFoo;
+    ::delete p;
 }
 
 int main()

@@ -4,7 +4,7 @@ LDFLAGS=
 
 FLAGS= $(CXXFLAGS) $(LDFLAGS)
 
-all: newExpression primitive override
+all: newExpression primitive override placementNew
 
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(patsubst %.cpp, %.o, $(SOURCES))
@@ -21,5 +21,8 @@ primitive: primitive.o
 override: override.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
+placementNew: placementNew.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
 clean:
-	rm -rf *.o newExpression primitive override
+	rm -rf *.o newExpression primitive override placementNew
