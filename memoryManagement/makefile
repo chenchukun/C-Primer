@@ -4,7 +4,7 @@ LDFLAGS=
 
 FLAGS= $(CXXFLAGS) $(LDFLAGS)
 
-all: newExpression primitive override placementNew
+all: newExpression primitive override placementNew complexAllocator allocator
 
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(patsubst %.cpp, %.o, $(SOURCES))
@@ -24,5 +24,11 @@ override: override.o
 placementNew: placementNew.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
+complexAllocator: complexAllocator.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
+allocator: allocator.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
 clean:
-	rm -rf *.o newExpression primitive override placementNew
+	rm -rf *.o newExpression primitive override placementNew complexAllocator allocator
