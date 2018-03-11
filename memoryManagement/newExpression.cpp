@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <cstdlib>
+#include <assert.h>
 using namespace std;
 
 class Complex
@@ -84,12 +85,25 @@ void placementNew()
     // p->Complex::Complex(1, 2);
 }
 
+void newHandler()
+{
+    cout << "out of memory" << endl;
+    abort();
+}
 
 int main()
 {
+    // 当系统内存不足而无法分配内存时,若用户设置了new_handler,operator new会调用用户设置的new_handler
+    // 一般情况下,new_handler可以释放一些内存,让内存可用,也可以直接调用abort()或exit()退出程序
+    set_new_handler(newHandler);
     newObj();
     arrayNew();
     placementNew();
+    // 一直分配内存而不释放,在内存用完后会调用newHandler
+    for (int i=0; i<100000; ++i) {
+        uint64_t *p = new uint64_t[2000000000];
+        assert(p);
+    }
     return 0;
 }
 
