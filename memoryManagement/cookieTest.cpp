@@ -9,6 +9,8 @@ using namespace std;
 
 void testAllocator()
 {
+    // 标准库中的allocator直接使用malloc分配内存,为了能正确的释放内存,
+    // 会在内存的首尾包含cookie,保存所分配的内存大小
     allocator<double> alloc;
     double *p1 = alloc.allocate(1);
     double *p2 = alloc.allocate(1);
@@ -20,6 +22,7 @@ void testAllocator()
 
 void testPoolAlloc()
 {
+    // __poll_alloc内部维护了一个内存池,使用其分配的内存不包含cookie
     __gnu_cxx::__pool_alloc<double> alloc;
     double *p1 = alloc.allocate(1);
     double *p2 = alloc.allocate(1);

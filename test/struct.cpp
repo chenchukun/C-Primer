@@ -33,5 +33,9 @@ int main()
     cout << "foo.y = " << foo.y << endl;
 
     cout << sizeof(Foo) << endl;
+
+    char *p = NULL;
+    char *p2 = NULL;
+    cout << p2 - p << endl;
     return 0;
 }

@@ -4,7 +4,7 @@ LDFLAGS=
 
 FLAGS= $(CXXFLAGS) $(LDFLAGS)
 
-all: newExpression primitive override placementNew complexAllocator allocator cookieTest
+all: newExpression primitive override placementNew complexAllocator allocator cookieTest alloc
 
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(patsubst %.cpp, %.o, $(SOURCES))
@@ -33,5 +33,8 @@ allocator: allocator.o
 cookieTest: cookieTest.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 
+alloc: alloc.o
+	$(CC) $^ -o $@ $(LDFLAGS)
+
 clean:
-	rm -rf *.o newExpression primitive override placementNew complexAllocator allocator cookieTest
+	rm -rf *.o newExpression primitive override placementNew complexAllocator allocator cookieTest alloc
