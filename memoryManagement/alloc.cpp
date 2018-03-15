@@ -85,6 +85,9 @@ void* PoolAlloc::refill(size_t bytes)
 {
     size_t n = FREE_LIST_MAX_SIZE;
     char *chunk = static_cast<char*>(chunkAlloc(bytes, n));
+    if (n == 1) {
+        return static_cast<void*>(chunk);
+    }
     size_t index = freeListIndex(bytes);
     for (size_t i=1; i < n; ++i) {
         Obj *obj = reinterpret_cast<Obj*>(chunk + i * bytes);
