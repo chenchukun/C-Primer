@@ -83,7 +83,7 @@ void* PoolAlloc::chunkAlloc(size_t bytes, size_t &n)
     // 内存池已无空间,分配更多的内存
     if (freeStart_ == NULL && freeEnd_ == NULL) {
         size_t mallocSize = bytes * n * 2 + roundUp(allocBytes_>>4);
-        freeStart_ = static_cast<char*>(malloc(mallocSize));
+        freeStart_ = static_cast<char*>(::operator new(mallocSize));
         // 内存分配失败, 尝试从更大的内存块中取出一块作为内存池使用
         if (freeStart_ == NULL) {
             size_t index = freeListIndex(bytes);
