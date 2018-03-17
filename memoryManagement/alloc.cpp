@@ -7,6 +7,8 @@ using namespace std;
 class PoolAlloc
 {
 public:
+    typedef void (*NewHandler)();
+
     static void* allocate(size_t bytes);
 
     static void deallocate(void *p, size_t bytes);
@@ -14,6 +16,10 @@ public:
     // DEBUG
     static size_t getAllocBytes() {
         return allocBytes_;
+    }
+
+    static void setNewHandler(NewHandler handler) {
+        newHandler_ = handler;
     }
 
 private:
@@ -34,8 +40,8 @@ private:
 private:
     // 内存块最小单位、 最大内存块、   每次分配的空闲链表最大长度
     enum {ALIGN = 8, MAX_BLOCK_SIZE = 128, FREE_LIST_MAX_SIZE = 20};
-    // 空闲链表数组长度、    内存池最大内存数
-    enum {LIST_SIZE = MAX_BLOCK_SIZE / ALIGN, MAX_MALLOC_SIZE = 10485760};
+    // 空闲链表数组长度、    内存池最大内存数  10485760
+    enum {LIST_SIZE = MAX_BLOCK_SIZE / ALIGN, MAX_MALLOC_SIZE = 100};
 
     struct Obj {
         struct Obj *next_;
@@ -48,6 +54,8 @@ private:
     static char *freeStart_;
 
     static char *freeEnd_;
+
+    static NewHandler newHandler_;
 };
 
 PoolAlloc::Obj* PoolAlloc::freeList_[PoolAlloc::LIST_SIZE] = {NULL};
@@ -58,27 +66,51 @@ char* PoolAlloc::freeStart_ = NULL;
 
 char* PoolAlloc::freeEnd_ = NULL;
 
+PoolAlloc::NewHandler PoolAlloc::newHandler_ = NULL;
+
 void* PoolAlloc::chunkAlloc(size_t bytes, size_t &n)
 {
     size_t freeSize = freeEnd_ - freeStart_;
-    // 碎片整理
+
+    // 内存池大小小于所需要的内存块大小,进行碎片整理
     if (freeSize > 0 && freeSize < bytes) {
         size_t index = freeListIndex(freeSize);
-        Obj *obj = reinterpret_cast<Obj*>(freeStart_);
+        Obj *obj = reinterpret_cast<Obj *>(freeStart_);
         obj->next_ = freeList_[index];
         freeList_[index] = obj;
         freeStart_ = freeEnd_ = NULL;
     }
+    // 内存池已无空间,分配更多的内存
     if (freeStart_ == NULL && freeEnd_ == NULL) {
-        freeStart_ = static_cast<char*>(malloc(bytes * n * 2));
-        allocBytes_ += bytes * n *2;
-        freeEnd_ = freeStart_ + bytes * n * 2;
-        freeStart_ += bytes * n;
-        return freeStart_;
+        // 已分配的内存大于最大上限
+        size_t mallocSize = bytes * n * 2 + roundUp(allocBytes_>>4);
+
+        if (allocBytes_ + mallocSize > MAX_MALLOC_SIZE) {
+            if (newHandler_ != NULL) {
+                newHandler_();
+                return chunkAlloc(bytes, n);
+            }
+            else {
+                throw bad_alloc();
+            }
+        }
+        else {
+            freeStart_ = static_cast<char*>(malloc(mallocSize));
+            allocBytes_ += mallocSize;
+            freeEnd_ = freeStart_ + mallocSize;
+            void *pret = static_cast<void*>(freeStart_);
+            freeStart_ += bytes * n;
+            return pret;
+        }
     }
-    n = freeSize / bytes;
-    freeStart_ += bytes * n;
-    return freeStart_;
+    else {
+        // 内存池容量大于等于内存块大小
+        void *pret = static_cast<void*>(freeStart_);
+        size_t maxBlocks = freeSize / bytes;
+        n = maxBlocks > n? n: maxBlocks;
+        freeStart_ += bytes * n;
+        return pret;
+    }
 }
 
 void* PoolAlloc::refill(size_t bytes)
@@ -144,6 +176,10 @@ public:
     static void construct(T *p, AT... args);
 
     static void destroy(T *p);
+
+    static void setNewHandler(PoolAlloc::NewHandler handler) {
+        PoolAlloc::setNewHandler(handler);
+    }
 };
 
 template<typename T>
@@ -239,8 +275,15 @@ void testAllocFoo()
     cout << "allocBytes = " << PoolAlloc::getAllocBytes() << endl;
 }
 
+void newHandler()
+{
+    cerr << "out of memory" << endl;
+    abort();
+}
+
 int main()
 {
+    PoolAlloc::setNewHandler(newHandler);
     testAllocInt();
     testAllocFoo();
     return 0;
