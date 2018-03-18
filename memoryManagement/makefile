@@ -1,5 +1,5 @@
 CC=g++
-CXXFLAGS=-std=c++11 -g -Wall
+CXXFLAGS=-std=c++11 -Wall
 LDFLAGS=
 
 FLAGS= $(CXXFLAGS) $(LDFLAGS)

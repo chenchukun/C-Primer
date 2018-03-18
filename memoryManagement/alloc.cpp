@@ -2,6 +2,9 @@
 // Created by chenchukun on 18/3/14.
 //
 #include <iostream>
+#include <list>
+#include <vector>
+#include <sys/time.h>
 using namespace std;
 
 class PoolAlloc
@@ -58,7 +61,8 @@ private:
     static NewHandler newHandler_;
 };
 
-PoolAlloc::Obj* PoolAlloc::freeList_[PoolAlloc::LIST_SIZE] = {NULL};
+PoolAlloc::Obj* PoolAlloc::freeList_[PoolAlloc::LIST_SIZE] =
+    {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
 size_t PoolAlloc::allocBytes_ = 0;
 
@@ -79,9 +83,10 @@ void* PoolAlloc::chunkAlloc(size_t bytes, size_t &n)
         obj->next_ = freeList_[index];
         freeList_[index] = obj;
         freeStart_ = freeEnd_ = NULL;
+        return chunkAlloc(bytes, n);
     }
     // 内存池已无空间,分配更多的内存
-    if (freeStart_ == NULL && freeEnd_ == NULL) {
+    if (freeSize == 0) {
         size_t mallocSize = bytes * n * 2 + roundUp(allocBytes_>>4);
         freeStart_ = static_cast<char*>(::operator new(mallocSize));
         // 内存分配失败, 尝试从更大的内存块中取出一块作为内存池使用
@@ -178,9 +183,9 @@ template<typename T>
 class Alloc
 {
 public:
-    static T* allocate();
+    static T* allocate(size_t n);
 
-    static void deallocate(T *p);
+    static void deallocate(T *p, size_t n);
 
     template<typename... AT>
     static void construct(T *p, AT... args);
@@ -190,19 +195,21 @@ public:
     static void setNewHandler(PoolAlloc::NewHandler handler) {
         PoolAlloc::setNewHandler(handler);
     }
+
+    typedef T value_type;
 };
 
 template<typename T>
-T* Alloc<T>::allocate()
+T* Alloc<T>::allocate(size_t n)
 {
-    void *p = PoolAlloc::allocate(sizeof(T));
+    void *p = PoolAlloc::allocate(sizeof(T) * n);
     return static_cast<T*>(p);
 }
 
 template<typename T>
-void Alloc<T>::deallocate(T *p)
+void Alloc<T>::deallocate(T *p, size_t n)
 {
-    PoolAlloc::deallocate(static_cast<void*>(p), sizeof(T));
+    PoolAlloc::deallocate(static_cast<void*>(p), sizeof(T) * n);
 }
 
 template<typename T>
@@ -252,16 +259,16 @@ void testAllocInt()
 {
     cout << "sizeof(int) = " << sizeof(int) << endl;
     Alloc<int> alloc;
-    int *p1 = alloc.allocate();
+    int *p1 = alloc.allocate(1);
     alloc.construct(p1, 10);
-    int *p2 = alloc.allocate();
+    int *p2 = alloc.allocate(1);
     alloc.construct(p2, 20);
     cout << "p1 = " << *p1 << " " << p1 << endl;
     cout << "p2 = " << *p2 << " " << p2 << endl;
     alloc.destroy(p1);
     alloc.destroy(p2);
-    alloc.deallocate(p1);
-    alloc.deallocate(p2);
+    alloc.deallocate(p1, 1);
+    alloc.deallocate(p2, 1);
     cout << "allocBytes = " << PoolAlloc::getAllocBytes() << endl;
 }
 
@@ -269,19 +276,19 @@ void testAllocFoo()
 {
     cout << "sizeof(Foo) = " << sizeof(Foo) << endl;
     Alloc<Foo> alloc;
-    Foo *f1 = alloc.allocate();
-    Foo *f2 = alloc.allocate();
+    Foo *f1 = alloc.allocate(1);
+    Foo *f2 = alloc.allocate(1);
 
     cout << "f1 = " << f1 << endl;
     cout << "f2 = " << f2 << endl;
 
     alloc.construct(f1);
     alloc.destroy(f1);
-    alloc.deallocate(f1);
+    alloc.deallocate(f1, 1);
 
     alloc.construct(f2, 10);
     alloc.destroy(f2);
-    alloc.deallocate(f2);
+    alloc.deallocate(f2, 1);
     cout << "allocBytes = " << PoolAlloc::getAllocBytes() << endl;
 }
 
@@ -291,10 +298,62 @@ void newHandler()
     abort();
 }
 
+size_t number = 0;
+
+size_t total = 0;
+
+const size_t TEST_COUNT = 100000000;
+
+void* operator new(size_t n)
+{
+    ++number;
+    total += n;
+    return malloc(n);
+}
+
+template<typename T>
+using PoolList = list<T, Alloc<T>>;
+
+void testAlloc()
+{
+    number = total = 0;
+    timeval start, end;
+    PoolList<double> l;
+    gettimeofday(&start, NULL);
+    for (int i=0; i<TEST_COUNT; ++i) {
+        l.push_back(i);
+    }
+    gettimeofday(&end, NULL);
+    cout << "==========testAlloc==========" << endl;
+    cout << "number of malloc: " << number << endl;
+    cout << "total of memory: " << total << endl;
+    uint32_t use = (end.tv_sec*1000000 + end.tv_usec) - (start.tv_sec*1000000 + start.tv_usec);
+    cout << "time: " << use << " usec" << endl;
+}
+
+void testAllocator()
+{
+    number = total = 0;
+    timeval start, end;
+    list<double> l;
+    gettimeofday(&start, NULL);
+    for (int i=0; i<TEST_COUNT; ++i) {
+        l.push_back(i);
+    }
+    gettimeofday(&end, NULL);
+    cout << "==========testAllocator==========" << endl;
+    cout << "number of malloc: " << number << endl;
+    cout << "total of memory: " << total << endl;
+    uint32_t use = (end.tv_sec*1000000 + end.tv_usec) - (start.tv_sec*1000000 + start.tv_usec);
+    cout << "time: " << use << " usec" << endl;
+}
+
 int main()
 {
     PoolAlloc::setNewHandler(newHandler);
-    testAllocInt();
-    testAllocFoo();
+//    testAllocInt();
+//    testAllocFoo();
+    testAlloc();
+    testAllocator();
     return 0;
 }
